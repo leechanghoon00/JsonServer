@@ -29,7 +29,7 @@ public class JsonServiceImpl implements JsonService{
 
         List<PropertyDTO> propertyDTOList = jsonDTO.getPrpertyList(); //DTO에서 Property를 리스트 형태로 가져옴
 
-        for (int i=0 ; i<propertyDTOList.size()-1 ; i++) { // 리스트가 몇개있는지 모르니까 계속 Entity로 변환하여 데이터 베이스에 저장
+        for (int i=0 ; i<propertyDTOList.size() ; i++) { // 리스트가 몇개있는지 모르니까 계속 Entity로 변환하여 데이터 베이스에 저장
             PropertyDTO prpertyDTO = propertyDTOList.get(i);
             propertyRepository.save(prpertyDTO.toEntity(save));
         }

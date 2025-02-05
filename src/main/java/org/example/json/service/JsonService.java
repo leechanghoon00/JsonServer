@@ -8,4 +8,9 @@ public interface JsonService {
 
     // Json만들기(DTO를 Entity로)
     public void CreateJson(JsonDTO jsonDTO);
+
+
+
+
+
 }

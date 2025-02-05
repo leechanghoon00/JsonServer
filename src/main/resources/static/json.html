@@ -10,118 +10,186 @@
             loadJsonList();
         });
 
+        // 키-값 입력 필드를 추가하는 함수
         function addKeyValueField() {
             const container = document.getElementById("jsonFields");
             const fieldHTML = `
-                <div class="row mb-2">
-                    <div class="col-md-3">
-                        <input type="text" class="form-control key-input" placeholder="키 입력">
-                    </div>
-                    <div class="col-md-3">
-                        <select class="form-control type-input">
-                            <option value="String">String</option>
-                            <option value="Numbe">Number</option>
-                            <option value="Boolean">Boolean</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <input type="text" class="form-control value-input" placeholder="값 입력">
-                    </div>
-                    <div class="col-md-2">
-                        <button class="btn btn-danger" onclick="removeField(this)">X</button>
-                    </div>
-                </div>
-            `;
+        <div class="row mb-2">
+          <div class="col-md-3">
+            <input type="text" class="form-control key-input" placeholder="키 입력">
+          </div>
+          <div class="col-md-3">
+            <select class="form-control type-input">
+              <option value="String">String</option>
+              <option value="Number">Number</option>
+              <option value="Boolean">Boolean</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <input type="text" class="form-control value-input" placeholder="값 입력">
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-danger" onclick="removeField(this)">X</button>
+          </div>
+        </div>
+      `;
             container.insertAdjacentHTML("beforeend", fieldHTML);
         }
 
+        // 특정 필드 제거 함수
         function removeField(button) {
             button.parentElement.parentElement.remove();
         }
 
+        // JSON 생성 기능 (백엔드의 POST /api/json 호출)
         function saveJson() {
-            const fields = document.querySelectorAll("#jsonFields .row");
-            const jsonData = {};
+            // JSON 제목 입력 필드의 값을 가져옴
+            const jsonTitle = document.getElementById("jsonTitle").value.trim();
+            if (!jsonTitle) {
+                alert("JSON 제목을 입력하세요.");
+                return;
+            }
 
+            // 각 키-값 입력 행을 순회하며 prpertyList 배열 구성
+            const fields = document.querySelectorAll("#jsonFields .row");
+            const prpertyList = [];
             fields.forEach(row => {
                 const key = row.querySelector(".key-input").value.trim();
                 const type = row.querySelector(".type-input").value;
                 let value = row.querySelector(".value-input").value.trim();
 
-                if (type === "Number") value = Number(value);
-                else if (type === "Boolean") value = value.toLowerCase() === "true";
+                if (type === "Number") {
+                    value = Number(value);
+                } else if (type === "Boolean") {
+                    value = value.toLowerCase() === "true";
+                }
 
-                if (key) jsonData[key] = value;
+                if (key) {
+                    prpertyList.push({
+                        keyName: key,
+                        valueData: value,
+                        type: type
+                    });
+                }
             });
 
-            fetch("/api/json", {
-                method: "POST",
+            // JsonDTO 객체 구성 (jsonTitle + prpertyList)
+            const jsonDTO = {
+                jsonTitle: jsonTitle,
+                prpertyList: prpertyList
+            };
+
+            // 수정/생성 구분을 위한 숨겨진 ID 필드 (현재는 생성만 처리)
+            const id = document.getElementById("jsonId").value;
+            let url = "/api/json";
+            let method = "POST";
+            if (id) {
+                url += "/" + id;
+                method = "PUT";
+            }
+
+            fetch(url, {
+                method: method,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(jsonData),
-            }).then(() => {
-                alert("JSON 저장 완료!");
-                loadJsonList();
+                body: JSON.stringify(jsonDTO)
+            }).then(response => {
+                if (response.ok) {
+                    alert("JSON 저장 완료!");
+                    clearForm();
+                    loadJsonList();
+                } else {
+                    alert("저장 중 오류 발생");
+                }
             });
         }
 
+        // JSON 목록 조회 함수
         function loadJsonList() {
             fetch("/api/json/list")
                 .then(response => response.json())
                 .then(data => {
                     const listContainer = document.getElementById("jsonList");
                     listContainer.innerHTML = "";
-
                     data.forEach(item => {
                         listContainer.insertAdjacentHTML("beforeend", `
-                            <tr>
-                                <td>${item.id}</td>
-                                <td><pre>${JSON.stringify(item.data, null, 2)}</pre></td>
-                                <td>
-                                    <button class="btn btn-info" onclick="loadJson(${item.id})">조회</button>
-                                    <button class="btn btn-danger" onclick="deleteJson(${item.id})">삭제</button>
-                                </td>
-                            </tr>
-                        `);
+              <tr>
+                <td>${item.id}</td>
+                <td><pre>${JSON.stringify(item.data, null, 2)}</pre></td>
+                <td>
+                  <button class="btn btn-info" onclick="loadJson(${item.id})">조회</button>
+                  <button class="btn btn-danger" onclick="deleteJson(${item.id})">삭제</button>
+                </td>
+              </tr>
+            `);
                     });
                 });
         }
 
+        // JSON 조회(수정 모드 전환) 함수
         function loadJson(id) {
             fetch(`/api/json/${id}`)
                 .then(response => response.json())
                 .then(data => {
+                    // 수정 모드로 전환: 숨겨진 ID 필드에 id 저장
+                    document.getElementById("jsonId").value = id;
+                    // JSON 제목은 data.jsonTitle로 가정 (백엔드 응답 구조에 맞게 조정)
+                    document.getElementById("jsonTitle").value = data.jsonTitle || "";
                     document.getElementById("jsonFields").innerHTML = "";
-                    Object.keys(data).forEach(key => {
-                        addKeyValueField();
-                        const fields = document.querySelectorAll("#jsonFields .row");
-                        const lastField = fields[fields.length - 1];
-
-                        lastField.querySelector(".key-input").value = key;
-                        lastField.querySelector(".value-input").value = data[key];
-                    });
+                    // data.prpertyList가 존재하면 각 프로퍼티를 로드
+                    if (data.prpertyList && Array.isArray(data.prpertyList)) {
+                        data.prpertyList.forEach(prop => {
+                            addKeyValueField();
+                            const fields = document.querySelectorAll("#jsonFields .row");
+                            const lastField = fields[fields.length - 1];
+                            lastField.querySelector(".key-input").value = prop.keyName;
+                            lastField.querySelector(".value-input").value = prop.valueData;
+                            lastField.querySelector(".type-input").value = prop.type;
+                        });
+                    }
                 });
         }
 
+        // JSON 삭제 함수
         function deleteJson(id) {
-            fetch(`/api/json/${id}`, { method: "DELETE" }).then(() => {
-                alert("삭제 완료!");
-                loadJsonList();
-            });
+            fetch(`/api/json/${id}`, { method: "DELETE" })
+                .then(response => {
+                    if (response.ok) {
+                        alert("삭제 완료!");
+                        loadJsonList();
+                    } else {
+                        alert("삭제 중 오류 발생");
+                    }
+                });
+        }
+
+        // 입력 폼 초기화 함수
+        function clearForm() {
+            document.getElementById("jsonId").value = "";
+            document.getElementById("jsonTitle").value = "";
+            document.getElementById("jsonFields").innerHTML = "";
         }
     </script>
 </head>
 <body class="container mt-5">
 <h2>JSON 데이터 관리</h2>
 
-<!-- JSON 입력 -->
+<!-- JSON 입력 영역 -->
 <div class="mb-4">
-    <h4>JSON 데이터 입력</h4>
+    <h4>JSON 데이터 입력 (생성 / 수정)</h4>
+    <!-- JSON 제목 입력 필드 추가 -->
+    <div class="mb-2">
+        <input type="text" id="jsonTitle" class="form-control" placeholder="JSON 제목 입력" required>
+    </div>
+    <!-- 수정 시 사용할 숨겨진 ID 필드 -->
+    <input type="hidden" id="jsonId" value="">
+    <!-- 동적으로 키-값 입력 필드가 추가될 영역 -->
     <div id="jsonFields"></div>
     <button class="btn btn-secondary mt-2" onclick="addKeyValueField()">키-값 추가</button>
     <button class="btn btn-primary mt-2" onclick="saveJson()">저장</button>
+    <button class="btn btn-info mt-2" onclick="clearForm()">폼 초기화</button>
 </div>
 
-<!-- JSON 조회 -->
+<!-- JSON 조회 영역 -->
 <div class="mb-4">
     <h4>JSON 데이터 조회</h4>
     <input type="text" id="jsonIdInput" class="form-control" placeholder="조회할 ID 입력">
