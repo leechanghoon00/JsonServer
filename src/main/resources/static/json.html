@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON 데이터 관리</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            loadJsonList();
+        });
+
+        function addKeyValueField() {
+            const container = document.getElementById("jsonFields");
+            const fieldHTML = `
+                <div class="row mb-2">
+                    <div class="col-md-3">
+                        <input type="text" class="form-control key-input" placeholder="키 입력">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-control type-input">
+                            <option value="String">String</option>
+                            <option value="Numbe">Number</option>
+                            <option value="Boolean">Boolean</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" class="form-control value-input" placeholder="값 입력">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-danger" onclick="removeField(this)">X</button>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML("beforeend", fieldHTML);
+        }
+
+        function removeField(button) {
+            button.parentElement.parentElement.remove();
+        }
+
+        function saveJson() {
+            const fields = document.querySelectorAll("#jsonFields .row");
+            const jsonData = {};
+
+            fields.forEach(row => {
+                const key = row.querySelector(".key-input").value.trim();
+                const type = row.querySelector(".type-input").value;
+                let value = row.querySelector(".value-input").value.trim();
+
+                if (type === "Number") value = Number(value);
+                else if (type === "Boolean") value = value.toLowerCase() === "true";
+
+                if (key) jsonData[key] = value;
+            });
+
+            fetch("/api/json", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(jsonData),
+            }).then(() => {
+                alert("JSON 저장 완료!");
+                loadJsonList();
+            });
+        }
+
+        function loadJsonList() {
+            fetch("/api/json/list")
+                .then(response => response.json())
+                .then(data => {
+                    const listContainer = document.getElementById("jsonList");
+                    listContainer.innerHTML = "";
+
+                    data.forEach(item => {
+                        listContainer.insertAdjacentHTML("beforeend", `
+                            <tr>
+                                <td>${item.id}</td>
+                                <td><pre>${JSON.stringify(item.data, null, 2)}</pre></td>
+                                <td>
+                                    <button class="btn btn-info" onclick="loadJson(${item.id})">조회</button>
+                                    <button class="btn btn-danger" onclick="deleteJson(${item.id})">삭제</button>
+                                </td>
+                            </tr>
+                        `);
+                    });
+                });
+        }
+
+        function loadJson(id) {
+            fetch(`/api/json/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("jsonFields").innerHTML = "";
+                    Object.keys(data).forEach(key => {
+                        addKeyValueField();
+                        const fields = document.querySelectorAll("#jsonFields .row");
+                        const lastField = fields[fields.length - 1];
+
+                        lastField.querySelector(".key-input").value = key;
+                        lastField.querySelector(".value-input").value = data[key];
+                    });
+                });
+        }
+
+        function deleteJson(id) {
+            fetch(`/api/json/${id}`, { method: "DELETE" }).then(() => {
+                alert("삭제 완료!");
+                loadJsonList();
+            });
+        }
+    </script>
+</head>
+<body class="container mt-5">
+<h2>JSON 데이터 관리</h2>
+
+<!-- JSON 입력 -->
+<div class="mb-4">
+    <h4>JSON 데이터 입력</h4>
+    <div id="jsonFields"></div>
+    <button class="btn btn-secondary mt-2" onclick="addKeyValueField()">키-값 추가</button>
+    <button class="btn btn-primary mt-2" onclick="saveJson()">저장</button>
+</div>
+
+<!-- JSON 조회 -->
+<div class="mb-4">
+    <h4>JSON 데이터 조회</h4>
+    <input type="text" id="jsonIdInput" class="form-control" placeholder="조회할 ID 입력">
+    <button class="btn btn-success mt-2" onclick="loadJson(document.getElementById('jsonIdInput').value)">조회</button>
+    <button class="btn btn-warning mt-2" onclick="loadJsonList()">전체 조회</button>
+</div>
+
+<!-- JSON 목록 -->
+<h4>저장된 JSON 데이터</h4>
+<table class="table table-bordered">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>JSON 데이터</th>
+        <th>관리</th>
+    </tr>
+    </thead>
+    <tbody id="jsonList"></tbody>
+</table>
+</body>
+</html>
