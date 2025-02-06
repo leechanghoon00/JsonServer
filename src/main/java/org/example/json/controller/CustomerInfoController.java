@@ -11,7 +11,10 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api")
 public class CustomerInfoController {
-    
+
+
+
+
     // CustomerinfoService를 통해 로직 처리
     private final CustomerInfoService customerInfoService;
     private final JsonService jsonService;

@@ -41,6 +41,8 @@
             button.parentElement.parentElement.remove();
         }
 
+
+        // ------------------------------------------------------------------------------
         // JSON 생성 기능 (백엔드의 POST /api/json 호출)
         function saveJson() {
             // JSON 제목 입력 필드의 값을 가져옴
@@ -102,6 +104,10 @@
                 }
             });
         }
+        // ------------------------------------------------------------------------------
+
+
+
 
         // JSON 목록 조회 함수
         function loadJsonList() {
@@ -173,6 +179,8 @@
 <body class="container mt-5">
 <h2>JSON 데이터 관리</h2>
 
+
+
 <!-- JSON 입력 영역 -->
 <div class="mb-4">
     <h4>JSON 데이터 입력 (생성 / 수정)</h4>
@@ -188,6 +196,11 @@
     <button class="btn btn-primary mt-2" onclick="saveJson()">저장</button>
     <button class="btn btn-info mt-2" onclick="clearForm()">폼 초기화</button>
 </div>
+
+
+
+
+
 
 <!-- JSON 조회 영역 -->
 <div class="mb-4">
